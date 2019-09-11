@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .twitter import Twitter, twitter_webhook
+from .models import Message
 
 
 def index(request):
@@ -29,6 +30,12 @@ def status(request):
     return HttpResponse(result)
 
 
+def events(request):
+    account_id = request.GET.get('account_id', None)
+    msg_list = Message.objects.filter(account__id=account_id)
+    return HttpResponse(msg_list)
+
+
 def create_twitter(request):
     account = Twitter.create_or_update_twitter(
         name=request.GET.get('name'),
@@ -40,8 +47,7 @@ def create_twitter(request):
         twitter_access_token_secret=request.GET.get('twitter_access_token_secret'),
         twitter_environment=request.GET.get('twitter_environment'))
 
-    if account is not None:
-        return HttpResponse(account.id)
+    return HttpResponse(f'Account id: {account.id}')
 
 
 @csrf_exempt

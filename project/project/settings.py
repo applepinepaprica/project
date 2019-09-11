@@ -27,7 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
-    'a3f1160a.ngrok.io',
 ]
 
 
@@ -123,4 +122,4 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-APP_URL = 'https://a3f1160a.ngrok.io/'
+APP_URL = ''

@@ -8,4 +8,5 @@ urlpatterns = [
     path('webhooks/twitter/<int:id>/', views.twitter_webhook_url),
     path('message/', views.message),
     path('status/', views.status),
+    path('events/', views.events),
 ]

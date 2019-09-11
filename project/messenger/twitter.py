@@ -9,7 +9,7 @@ import twitter
 from django.http import HttpResponse
 
 from project import settings
-from .models import Account, AccountType, AccountSetting
+from .models import Account, AccountType, AccountSetting, Message, MessageType
 
 
 # twitter utils. This class create webhooks, sibscribe, send messages
@@ -271,17 +271,32 @@ def twitter_webhook(request, account_id):
             msg_list = event.get('direct_message_events')
 
             if msg_list:
-                print(msg_list)
-            #     # ignore if outbound message
-            #     sender_id = msg_list[0]['message_create']['sender_id']
-            #     user_id = AccountSetting.objects.get(key='twitter_user_id', account_id=account_id).value
-            #     if sender_id == user_id:
-            #         return HttpResponse(status=200)
-            #     # save if inbound message
-            #     event['account_id'] = account_id
-            #     messenger = MessageFactory.factory()
-            #     messenger.receive(AccountType.TWITTER, event)
-            #     return HttpResponse(status=201)
+                # ignore if outbound message
+                sender_id = msg_list[0]['message_create']['sender_id']
+                user_id = AccountSetting.objects.get(key='twitter_user_id', account__id=account_id).value
+                if sender_id == user_id:
+                    return HttpResponse(status=200)
+                # save if inbound message
+                account = Account.objects.get(id=account_id)
+                text = msg_list[0]['message_create']['message_data']['text']
+                Message.objects.create(account=account, event=msg_list, type=MessageType.MESSAGE,
+                                       author=sender_id, text=text)
+                # event['account_id'] = account_id
+                # messenger = MessageFactory.factory()
+                # messenger.receive(AccountType.TWITTER, event)
+                return HttpResponse(status=201)
+
+            msg_list = event.get('tweet_create_events')
+            if msg_list:
+                sender_id = msg_list[0]['user']['id_str']
+                user_id = AccountSetting.objects.get(key='twitter_user_id', account__id=account_id).value
+                if sender_id == user_id:
+                    return HttpResponse(status=200)
+                account = Account.objects.get(id=account_id)
+                text = msg_list[0]['text']
+                Message.objects.create(account=account, event=msg_list, type=MessageType.TWEET,
+                                       author=sender_id, text=text)
+                return HttpResponse(status=201)
 
             return HttpResponse(status=200)
 
