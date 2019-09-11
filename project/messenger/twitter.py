@@ -7,7 +7,6 @@ import urllib.parse
 import requests
 import twitter
 from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 
 from project import settings
 from .models import Account, AccountType, AccountSetting
@@ -19,6 +18,19 @@ class Twitter(object):
     def __init__(self, **kwargs):
         self.data = kwargs
         self.base_url = 'https://api.twitter.com/'
+
+    @staticmethod
+    def get_twitter(account_id):
+        return Twitter(twitter_consumer_key=AccountSetting.objects.get(key='twitter_consumer_key',
+                                                                       account__id=account_id).value,
+                       twitter_consumer_secret=AccountSetting.objects.get(key='twitter_consumer_secret',
+                                                                          account__id=account_id).value,
+                       twitter_access_token=AccountSetting.objects.get(key='twitter_access_token',
+                                                                       account__id=account_id).value,
+                       twitter_access_token_secret=AccountSetting.objects.get(key='twitter_access_token_secret',
+                                                                              account__id=account_id).value,
+                       twitter_environment=AccountSetting.objects.get(key='twitter_environment',
+                                                                      account__id=account_id).value)
 
     def get_application(self):
         consumer_key = self.data['twitter_consumer_key']
@@ -86,7 +98,7 @@ class Twitter(object):
                 webhook_id
             ), method='DELETE')
         else:
-            raise Exception('Not enouth information')
+            raise Exception('Not enough information')
 
     def get_access_token(self):
         key_secret = '{}:{}'.format(
@@ -119,7 +131,8 @@ class Twitter(object):
                 'target': {'recipient_id': user_id}},
                 'type': 'message_create'}
             }
-        app.request(url, body=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
+        response, content = app.request(url, body=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
+        return response['status']
 
     def get_home_timeline(self):
         app = self.get_application()
@@ -128,27 +141,39 @@ class Twitter(object):
         data = json.loads(content.decode('utf-8'))
         return data
 
+    def update_status(self, text, in_reply_to_status_id=None):
+        app = self.get_application()
+        url = '{}1.1/statuses/update.json?status={}&in_reply_to_status_id={}'.format(self.base_url, text, in_reply_to_status_id)
+        response, content = app.request(url, headers={'Content-Type': 'application/json'}, method='POST')
+        return response['status']
+
     def create_webhook_and_subscribe(self):
         if self.create_webhook():
             self.subscribe()
         else:
             raise Exception('Could not create webhook and subscribe user')
 
-
-
-# create Twitter account
-
+    # create Twitter account
     def create_or_update_twitter(name, company_property, account_id=None, **account_settings):
 
         # check account settings are provided
-        try:
-            twitter_consumer_key = account_settings['twitter_consumer_key']
-            twitter_consumer_secret = account_settings['twitter_consumer_secret']
-            twitter_access_token = account_settings['twitter_access_token']
-            twitter_access_token_secret = account_settings['twitter_access_token_secret']
-            twitter_environment = account_settings['twitter_environment']
-        except KeyError:
-            raise Exception('Missing settings')
+        if account_id is None:
+            try:
+                twitter_consumer_key = account_settings['twitter_consumer_key']
+                twitter_consumer_secret = account_settings['twitter_consumer_secret']
+                twitter_access_token = account_settings['twitter_access_token']
+                twitter_access_token_secret = account_settings['twitter_access_token_secret']
+                twitter_environment = account_settings['twitter_environment']
+            except KeyError:
+                raise Exception('Missing settings')
+        else:
+            twitter_consumer_key = AccountSetting.objects.get(account__id=account_id, key='twitter_consumer_key').value
+            twitter_consumer_secret = AccountSetting.objects.get(account__id=account_id,
+                                                                 key='twitter_consumer_secret').value
+            twitter_access_token = AccountSetting.objects.get(account__id=account_id, key='twitter_access_token').value
+            twitter_access_token_secret = AccountSetting.objects.get(account__id=account_id,
+                                                                     key='twitter_access_token_secret').value
+            twitter_environment = AccountSetting.objects.get(account__id=account_id, key='twitter_environment').value
 
         # validate account settings
         try:
@@ -167,7 +192,8 @@ class Twitter(object):
         # create account
         if account_id is None:
             # save new account
-            account = Account.objects.create(name=name, application=AccountType.TWITTER, company_property=company_property)
+            account = Account.objects.create(name=name, application=AccountType.TWITTER,
+                                             company_property=company_property)
 
         # update account
         else:
@@ -181,15 +207,15 @@ class Twitter(object):
 
         # update account settings
         AccountSetting.objects.update_or_create(key='twitter_consumer_key', account=account,
-                                                defaults={'value': twitter_consumer_key})
+                                                value=twitter_consumer_key)
         AccountSetting.objects.update_or_create(key='twitter_consumer_secret', account=account,
-                                                defaults={'value': twitter_consumer_secret})
+                                                value=twitter_consumer_secret)
         AccountSetting.objects.update_or_create(key='twitter_access_token', account=account,
-                                                defaults={'value': twitter_access_token})
+                                                value=twitter_access_token)
         AccountSetting.objects.update_or_create(key='twitter_access_token_secret', account=account,
-                                                defaults={'value': twitter_access_token_secret})
+                                                value=twitter_access_token_secret)
         AccountSetting.objects.update_or_create(key='twitter_environment', account=account,
-                                                defaults={'value': twitter_environment})
+                                                value=twitter_environment)
 
         # generate webhook url
         webhook_url = '{}webhooks/twitter/{id}/'.format(settings.APP_URL, id=account.id)
@@ -208,9 +234,9 @@ class Twitter(object):
 
         twitter_contact_url = 'https://twitter.com/messages/compose?recipient_id={twitter_id}'.format(twitter_id=twitter_id)
         AccountSetting.objects.update_or_create(key='twitter_user_id', account=account,
-                                                defaults={'value': twitter_id})
+                                                value=twitter_id)
         AccountSetting.objects.update_or_create(key='twitter_contact_url', account=account,
-                                                defaults={'value': twitter_contact_url})
+                                                value=twitter_contact_url)
         # widget = WidgetSettings.objects.get(company_property=company_property)
         # if account_id is None:
         #     widget.twitter_display = True
@@ -221,7 +247,6 @@ class Twitter(object):
 
 
 # Twitter webhook. This part of code should be in views.py where requests are handled
-@csrf_exempt
 def twitter_webhook(request, account_id):
 
     if request.method == 'GET':
@@ -236,7 +261,7 @@ def twitter_webhook(request, account_id):
     elif request.method == 'POST':
         # authenticate request
         signature = request.META.get('HTTP_X_TWITTER_WEBHOOKS_SIGNATURE')
-        consumer_secret = AccountSetting.objects.get(key='twitter_consumer_secret', account_id=account_id).value
+        consumer_secret = AccountSetting.objects.get(key='twitter_consumer_secret', account__id=account_id).value
         sha256_hash_digest = hmac.new(consumer_secret.encode(), request.body, hashlib.sha256).digest()
         base64_hash = base64.b64encode(sha256_hash_digest)
 
@@ -245,7 +270,8 @@ def twitter_webhook(request, account_id):
             event = json.loads(request.body.decode('utf-8'))
             msg_list = event.get('direct_message_events')
 
-            # if msg_list:
+            if msg_list:
+                print(msg_list)
             #     # ignore if outbound message
             #     sender_id = msg_list[0]['message_create']['sender_id']
             #     user_id = AccountSetting.objects.get(key='twitter_user_id', account_id=account_id).value
