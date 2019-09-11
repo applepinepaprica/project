@@ -2,12 +2,15 @@
 
 ### How to run project:
 * Run ngrok
+```
+./ngrok http 8000
+```
 * Write url from ngrok to ALLOWED_HOSTS and APP_URL in project/setting.py 
-* Run commands:
+* Run commands from root folder:
 ```
 python3.6 -m venv venv
 source venv/bin/activate
-pip install requirements.txt
+pip install -r requirements.txt
 cd project
 python manage.py migrate
 python manage.py runserver
@@ -20,8 +23,8 @@ The project will be available here: http://localhost:8000/
 ```
 http://localhost:8000/create_twitter?name=name&company_property=company&twitter_consumer_key=&twitter_consumer_secret=&twitter_access_token=&twitter_access_token_secret=&twitter_environment=
 ```
-All values must be without quotes
-This endpoint returns account id for other requests
+All values must be without quotes.
+This endpoint returns account id for other requests.
 
 * Register webhook and subscribe if account exists:
 ```
