@@ -15,7 +15,7 @@ cd project
 python manage.py migrate
 python manage.py runserver
 ```
-The project will be available here: http://localhost:8000/
+_The project will be available here: http://localhost:8000/_
 
 ### Available endpoints:
 
@@ -23,8 +23,8 @@ The project will be available here: http://localhost:8000/
 ```
 http://localhost:8000/create_twitter?name=name&company_property=company&twitter_consumer_key=&twitter_consumer_secret=&twitter_access_token=&twitter_access_token_secret=&twitter_environment=
 ```
-All values must be without quotes.
-This endpoint returns account id for other requests.
+_All values must be without quotes.
+This endpoint returns account id for other requests._
 
 * Register webhook and subscribe if account exists:
 ```
