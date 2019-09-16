@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .twitter import Twitter, twitter_webhook
-from .models import Message
+from .models import Event
 
 
 def index(request):
@@ -32,7 +32,7 @@ def status(request):
 
 def events(request):
     account_id = request.GET.get('account_id', None)
-    msg_list = Message.objects.filter(account__id=account_id)
+    msg_list = Event.objects.filter(account__id=account_id)
     return HttpResponse(msg_list)
 
 

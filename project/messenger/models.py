@@ -25,15 +25,15 @@ class AccountSetting(models.Model):
         return f'Account:{self.account_id}, key: {self.key}, value: {self.value}'
 
 
-class MessageType(Enum):
+class EventType(Enum):
     TWEET = "Tweet"
     MESSAGE = "Message"
 
 
-class Message(models.Model):
+class Event(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
     event = models.CharField(max_length=5000)
-    type = models.CharField(max_length=20, choices=[(tag, tag.value) for tag in MessageType])
+    type = models.CharField(max_length=20, choices=[(tag, tag.value) for tag in EventType])
     author = models.CharField(max_length=100)
     text = models.CharField(max_length=5000)
 
